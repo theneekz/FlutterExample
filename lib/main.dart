@@ -1,11 +1,7 @@
+import 'api.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:english_words/english_words.dart';
-
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
-  }
-}
+// import 'package:english_words/english_words.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,13 +51,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static List<Map> teams = [
-    {'name': 'Team A', 'players': generateWordPairs().take(11).toList()},
-    {'name': 'Team B', 'players': generateWordPairs().take(11).toList()},
-    {'name': 'Team C', 'players': generateWordPairs().take(11).toList()},
-    {'name': 'Team D', 'players': generateWordPairs().take(11).toList()},
-    {'name': 'Team E', 'players': generateWordPairs().take(11).toList()}
-  ];
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -70,20 +59,30 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: AllTeamsView(items: teams),
-    );
+    return FutureBuilder(
+        future: getAllTeamsData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done &&
+              snapshot.hasData &&
+              snapshot.data is Map<dynamic, dynamic>) {
+            return Scaffold(
+                appBar: AppBar(
+                  // Here we take the value from the MyHomePage object that was created by
+                  // the App.build method, and use it to set our appbar title.
+                  title: Text(widget.title),
+                ),
+                body: AllTeamsView(items: snapshot.data!));
+          } else {
+            return const CircularProgressIndicator();
+          }
+          ;
+        });
   }
 }
 
 class AllTeamsView extends StatelessWidget {
   const AllTeamsView({super.key, required this.items});
-  final List items;
+  final Map items;
 
   @override
   Widget build(BuildContext context) {
@@ -100,9 +99,10 @@ class AllTeamsView extends StatelessWidget {
     return ListView.separated(
       itemCount: items.length,
       itemBuilder: (context, i) {
+        var key = items.keys.elementAt(i);
         return ListTile(
-            title: Text('${items[i]['name']}'),
-            onTap: () => navigateToTeam(items[i]));
+            title: Text(items[key]['name']),
+            onTap: () => navigateToTeam(items[key]));
       },
       separatorBuilder: (BuildContext context, int index) => const Divider(),
     );
@@ -114,6 +114,16 @@ class Team extends StatelessWidget {
   final Map team;
   @override
   Widget build(BuildContext context) {
+    void navigateToStats(Map player) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) {
+            return Stats(stats: player);
+          },
+        ),
+      );
+    }
+
     return Scaffold(
         appBar: AppBar(
           title: Text(team['name']),
@@ -121,12 +131,26 @@ class Team extends StatelessWidget {
         body: ListView.separated(
           itemCount: team['players'].length,
           itemBuilder: (context, i) {
-            String fullName =
-                '${team['players'][i].first} ${team['players'][i].second}';
-            return ListTile(title: Text(fullName));
+            String fullName = team['players'][i]['player_name'];
+            return ListTile(
+              title: Text(fullName),
+              onTap: () => navigateToStats(team['players'][i]),
+            );
           },
           separatorBuilder: (BuildContext context, int index) =>
               const Divider(),
         ));
+  }
+}
+
+class Stats extends StatelessWidget {
+  const Stats({super.key, required this.stats});
+  final Map stats;
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+        child: Text.rich(TextSpan(
+            text: jsonEncode(stats),
+            style: DefaultTextStyle.of(context).style)));
   }
 }
