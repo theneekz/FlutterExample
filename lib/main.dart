@@ -1,7 +1,6 @@
 import 'api.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-// import 'package:english_words/english_words.dart';
 
 void main() {
   runApp(const MyApp());
@@ -148,9 +147,20 @@ class Stats extends StatelessWidget {
   final Map stats;
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-        child: Text.rich(TextSpan(
-            text: jsonEncode(stats),
-            style: DefaultTextStyle.of(context).style)));
+    return Scaffold(
+        appBar: AppBar(title: Text(stats['player_name'])),
+        body: Text.rich(TextSpan(
+            // text: stats.toString(),
+            text: prettyJson(stats),
+            style: TextStyle(
+                color: Colors.grey[800],
+                fontWeight: FontWeight.bold,
+                fontSize: 20))));
   }
+}
+
+String prettyJson(dynamic json) {
+  var spaces = ' ' * 4;
+  var encoder = JsonEncoder.withIndent(spaces);
+  return encoder.convert(json);
 }
